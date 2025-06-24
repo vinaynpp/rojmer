@@ -1,5 +1,4 @@
-use std::env;
-
+// use std::env;
 
 #[derive(Clone)]
 struct Bank {
@@ -39,13 +38,38 @@ struct Transaction {
     description: String,
 }
 
+enum TimePeriodType {
+    Daily,
+    Weekly,
+    Monthly,
+    Yearly,
+}
+
+struct TimePeriod {
+    type_: TimePeriodType,
+    start: u64,
+    end: u64,
+}
+
+
+struct Budget {
+    name: String,
+    parent: String, // Name of the parent bank or bucket
+    parent_type: String, // "bank" or "bucket"
+    time_period: TimePeriod,
+    amount: f64,
+    description: String,
+}
+
+
+
 struct UserData {
     bank: Vec<Bank>,
     bucket: Vec<Bucket>,
     tag: Vec<Tag>,
     transaction: Vec<Transaction>,
+    budget: Vec<Budget>,
 }
-
 
 fn handle_transaction(input: &str, user_data: &mut UserData) {
     // Handle transaction commands
@@ -60,8 +84,9 @@ fn handle_transaction(input: &str, user_data: &mut UserData) {
         "e" => TransactionType::Expense,
         _ => {
             println!("Invalid transaction type. Use 'income' or 'expense'.");
-        return;
-    }};
+            return;
+        }
+    };
 
     let amount: f64 = match parts[2].parse() {
         Ok(num) => num,
@@ -167,8 +192,15 @@ fn handle_bank(input: &str, user_data: &mut UserData) {
         balance,
     };
     // Check if the bank already exists
-    if user_data.bank.iter().any(|b| b.name == bank.name && b.accountnumber == bank.accountnumber) {
-        println!("Bank with name '{}' and account number '{}' already exists.", bank.name, bank.accountnumber);
+    if user_data
+        .bank
+        .iter()
+        .any(|b| b.name == bank.name && b.accountnumber == bank.accountnumber)
+    {
+        println!(
+            "Bank with name '{}' and account number '{}' already exists.",
+            bank.name, bank.accountnumber
+        );
         return;
     }
 
@@ -218,7 +250,11 @@ fn handle_bucket(input: &str, user_data: &mut UserData) {
     };
 
     // Find existing bank or create a new one
-    let bank = if let Some(existing_bank) = user_data.bank.iter().find(|b| b.name == bank_name && b.accountnumber == account_number) {
+    let bank = if let Some(existing_bank) = user_data
+        .bank
+        .iter()
+        .find(|b| b.name == bank_name && b.accountnumber == account_number)
+    {
         existing_bank.clone()
     } else {
         let newbank = Bank {
@@ -278,12 +314,13 @@ fn handle_tag(input: &str, user_data: &mut UserData) {
     };
 
     // Find existing bucket or create a new one
-    let bucket = if let Some(existing_bucket) = user_data.bucket.iter().find(|b| b.name == bucket_name) {
-        existing_bucket.clone()
-    } else {
-        println!("Bucket with name '{}' does not exist.", bucket_name);
-        return;
-    };
+    let bucket =
+        if let Some(existing_bucket) = user_data.bucket.iter().find(|b| b.name == bucket_name) {
+            existing_bucket.clone()
+        } else {
+            println!("Bucket with name '{}' does not exist.", bucket_name);
+            return;
+        };
 
     let tag = Tag {
         name,
@@ -314,12 +351,11 @@ fn print_tags(user_data: &UserData) {
     }
 }
 
-
 // Function to initialize the application
 fn init_app() {
     // Initialize any necessary data structures or configurations here
     println!("Initializing the application...");
-        // Print a welcome message
+    // Print a welcome message
     println!("Welcome to the interactive console application!");
     println!("Type 'exit' to quit.");
     println!("Type 'help' for available commands.");
@@ -331,7 +367,6 @@ fn init_app() {
     println!("Type 'ls banks' to list all banks.");
     println!("Type 'ls buckets' to list all buckets.");
     println!("Type 'ls tags' to list all tags.");
-
 }
 
 fn handle_exit() {
@@ -340,14 +375,13 @@ fn handle_exit() {
     std::process::exit(0);
 }
 
-
 fn main() {
     // Set the current working directory to the directory of the executable
-    if let Some(exe_path) = env::current_exe().ok() {
-        if let Some(dir) = exe_path.parent() {
-            env::set_current_dir(dir).expect("Failed to set current directory");
-        }
-    }
+    // if let Some(exe_path) = env::current_exe().ok() {
+    //     if let Some(dir) = exe_path.parent() {
+    //         env::set_current_dir(dir).expect("Failed to set current directory");
+    //     }
+    // }
     // Start the interactive console application
     run_console();
 }
@@ -360,22 +394,26 @@ fn run_console() {
         bucket: Vec::new(),
         tag: Vec::new(),
         transaction: Vec::new(),
+        budget: Vec::new(),
     };
     init_app(); // Initialize the application
 
-    
     // Loop to read user input
     loop {
         print!("> ");
         io::stdout().flush().expect("Failed to flush stdout"); // Ensure prompt is printed immediately
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Failed to read line");
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line");
 
         let trimmed_input = input.trim();
         // Handle special commands
         if trimmed_input.eq_ignore_ascii_case("help") {
-            println!("Available commands: help, exit, cf <category> <tag>, pcf");
+            println!(
+                "Available commands: help, exit, bank <name> <accountnumber> <balance>, bucket <name> <balance> [bank_name] [account_number], tag <name> <bucket_name> <description>, txn <type> <amount> [tags] [description], ls, ls banks, ls buckets, ls tags"
+            );
             continue;
         } else if trimmed_input.eq_ignore_ascii_case("exit") {
             handle_exit();
@@ -407,7 +445,5 @@ fn run_console() {
             println!("Unknown command: {}", trimmed_input);
             continue;
         }
-     
-
     }
 }
